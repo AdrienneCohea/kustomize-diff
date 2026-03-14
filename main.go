@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/AdrienneCohea/kustomize-diff/internal/diff"
 	"github.com/AdrienneCohea/kustomize-diff/internal/git"
@@ -18,11 +19,19 @@ import (
 	"github.com/homeport/dyff/pkg/dyff"
 )
 
+// stringSliceFlag is a repeatable string flag (e.g. -search-path a -search-path b).
+type stringSliceFlag []string
+
+func (f *stringSliceFlag) String() string  { return strings.Join(*f, ", ") }
+func (f *stringSliceFlag) Set(v string) error { *f = append(*f, v); return nil }
+
 func main() {
 	log.SetFlags(0)
 
 	baseRef := flag.String("base-ref", "", "git ref to compare against (default: auto-detect from origin)")
 	noFetch := flag.Bool("no-fetch", false, "skip git fetch before comparing")
+	var searchPaths stringSliceFlag
+	flag.Var(&searchPaths, "search-path", "relative path within the repo to search for overlays (repeatable); hidden directories are not filtered when this flag is set (default: search entire repo)")
 	flag.Parse()
 
 	repoRoot := "."
@@ -63,14 +72,14 @@ func main() {
 		fmt.Fprintf(os.Stderr, "warning: could not extract %s, treating as empty baseline: %v\n", ref, err)
 	}
 
-	workingOverlays, err := kustomize.FindOverlays(absRoot)
+	workingOverlays, err := kustomize.FindOverlays(absRoot, searchPaths)
 	if err != nil {
 		log.Fatalf("finding overlays in working tree: %v", err)
 	}
 
 	var baselineOverlays []string
 	if !noBaseline {
-		baselineOverlays, err = kustomize.FindOverlays(tmpDir)
+		baselineOverlays, err = kustomize.FindOverlays(tmpDir, searchPaths)
 		if err != nil {
 			log.Fatalf("finding overlays in baseline: %v", err)
 		}

@@ -10,19 +10,38 @@ import (
 	"strings"
 )
 
-// FindOverlays walks root and returns the relative paths of all directories
-// that contain a kustomization.yaml or kustomization.yml file. Hidden
-// directories (names starting with ".") are skipped.
-func FindOverlays(root string) ([]string, error) {
+// FindOverlays returns the relative paths of all directories under root that
+// contain a kustomization.yaml or kustomization.yml file.
+//
+// If searchPaths is empty the entire root is walked and hidden directories
+// (names starting with ".") are skipped. If searchPaths is non-empty, only
+// those paths (relative to root) are walked and no hidden-directory filtering
+// is applied, allowing callers to target hidden directories explicitly.
+func FindOverlays(root string, searchPaths []string) ([]string, error) {
+	if len(searchPaths) == 0 {
+		return walkForOverlays(root, root, true)
+	}
+	var all []string
+	for _, sp := range searchPaths {
+		overlays, err := walkForOverlays(root, filepath.Join(root, sp), false)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, overlays...)
+	}
+	return all, nil
+}
+
+func walkForOverlays(root, start string, skipHidden bool) ([]string, error) {
 	var overlays []string
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(start, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if !d.IsDir() {
 			return nil
 		}
-		if strings.HasPrefix(d.Name(), ".") {
+		if skipHidden && strings.HasPrefix(d.Name(), ".") {
 			return filepath.SkipDir
 		}
 		for _, name := range []string{"kustomization.yaml", "kustomization.yml"} {
