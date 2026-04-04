@@ -46,6 +46,7 @@ Run from within a git repository, or pass the path to the repo root as a positio
 |------|---------|-------------|
 | `-base-ref` | auto-detect | Git ref to compare the working tree against. Defaults to the remote default branch (e.g. `origin/main`). |
 | `-no-fetch` | false | Skip `git fetch origin` before comparing. |
+| `-search-path` | (none) | Relative path within the repo to search for overlays. Can be specified multiple times. If omitted, the entire repo is searched. |
 
 ### Examples
 
@@ -65,9 +66,30 @@ kustomize-diff /path/to/my-repo
 
 ## GitHub Actions
 
-When run inside a GitHub Actions workflow (`GITHUB_ACTIONS=true`), output is formatted using `::group::` blocks for collapsible sections, and a markdown summary table is written to `$GITHUB_STEP_SUMMARY`.
+### Using the public action
 
-Example workflow step:
+The easiest way to use `kustomize-diff` in a PR workflow is via the published GitHub Action:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: AdrienneCohea/kustomize-diff@v1
+```
+
+To target specific overlay directories, use the `search-path` input (newline-separated):
+
+```yaml
+- uses: AdrienneCohea/kustomize-diff@v1
+  with:
+    search-path: |
+      overlays
+      base
+```
+
+The action automatically diffs against the PR's merge target branch and requires no other configuration. Output is formatted using `::group::` blocks for collapsible sections, and a markdown summary table is written to `$GITHUB_STEP_SUMMARY`.
+
+### Running the CLI directly
+
+You can also invoke the binary directly in a workflow step:
 
 ```yaml
 - name: kustomize-diff

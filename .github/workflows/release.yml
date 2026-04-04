@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version tags
+        id: tags
+        run: |
+          FULL_TAG="${GITHUB_REF_NAME}"
+          MAJOR_TAG="${FULL_TAG%%.*}"
+          echo "full=${FULL_TAG}" >> "$GITHUB_OUTPUT"
+          echo "major=${MAJOR_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/adriennecohea/kustomize-diff:${{ steps.tags.outputs.full }}
+            ghcr.io/adriennecohea/kustomize-diff:${{ steps.tags.outputs.major }}
+            ghcr.io/adriennecohea/kustomize-diff:latest
