@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*.*.*'
 
+env:
+  GO_VERSION: "1.25.8"
+  ALPINE_VERSION: "3.23"
+  KUSTOMIZE_VERSION: "5.8.1"
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -39,3 +44,7 @@ jobs:
             ghcr.io/adriennecohea/kustomize-diff:${{ steps.tags.outputs.full }}
             ghcr.io/adriennecohea/kustomize-diff:${{ steps.tags.outputs.major }}
             ghcr.io/adriennecohea/kustomize-diff:latest
+          build-args: |
+            GO_VERSION=${{ env.GO_VERSION }}
+            ALPINE_VERSION=${{ env.ALPINE_VERSION }}
+            KUSTOMIZE_VERSION=${{ env.KUSTOMIZE_VERSION }}
