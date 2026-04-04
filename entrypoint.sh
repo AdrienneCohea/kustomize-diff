@@ -13,4 +13,8 @@ ${INPUT_SEARCH_PATH}
 EOF
 fi
 
+case "$(printenv 'INPUT_FORCE-TRUECOLOR' || true)" in
+  true|True|TRUE) ARGS="$ARGS -force-truecolor" ;;
+esac
+
 exec kustomize-diff $ARGS
