@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
 ARGS="-base-ref origin/${GITHUB_BASE_REF}"
 
 if [ -n "${INPUT_SEARCH_PATH}" ]; then
