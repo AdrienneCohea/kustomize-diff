@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -33,6 +34,9 @@ func FindOverlays(root string, searchPaths []string) ([]string, error) {
 }
 
 func walkForOverlays(root, start string, skipHidden bool) ([]string, error) {
+	if _, err := os.Lstat(start); os.IsNotExist(err) {
+		return nil, nil
+	}
 	var overlays []string
 	err := filepath.WalkDir(start, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
