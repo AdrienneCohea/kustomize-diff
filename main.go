@@ -38,6 +38,18 @@ func main() {
 	flag.Var(&searchPaths, "search-path", "relative path within the repo to search for overlays (repeatable); hidden directories are not filtered when this flag is set (default: search entire repo)")
 	flag.Parse()
 
+	if len(searchPaths) == 0 {
+		// GitHub Actions passes Docker action inputs as INPUT_<name> preserving
+		// hyphens, so this is INPUT_SEARCH-PATH, not INPUT_SEARCH_PATH.
+		if v := os.Getenv("INPUT_SEARCH-PATH"); v != "" {
+			for _, p := range strings.Split(v, "\n") {
+				if p = strings.TrimSpace(p); p != "" {
+					searchPaths = append(searchPaths, p)
+				}
+			}
+		}
+	}
+
 	if *forceTrueColor {
 		bunt.SetColorSettings(bunt.ON, bunt.ON)
 	} else if *forceColor {
