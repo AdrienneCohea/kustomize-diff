@@ -50,6 +50,14 @@ func main() {
 		}
 	}
 
+	if !*forceTrueColor {
+		// GitHub Actions passes Docker action inputs as INPUT_<name> preserving
+		// hyphens, so this is INPUT_FORCE-TRUECOLOR, not INPUT_FORCE_TRUECOLOR.
+		if v := os.Getenv("INPUT_FORCE-TRUECOLOR"); v == "true" || v == "True" || v == "TRUE" {
+			*forceTrueColor = true
+		}
+	}
+
 	if *forceTrueColor {
 		bunt.SetColorSettings(bunt.ON, bunt.ON)
 	} else if *forceColor {

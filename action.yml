@@ -8,6 +8,12 @@ inputs:
       Newline-separated list of paths (relative to repo root) to search for
       Kustomize overlays. If omitted, the entire repo is searched.
     required: false
+  force-truecolor:
+    description: >
+      Force 24-bit true color output (implies force-color). Set to "true" to
+      enable.
+    required: false
+    default: "false"
 
 runs:
   using: docker
