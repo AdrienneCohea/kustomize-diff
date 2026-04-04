@@ -1,0 +1,18 @@
+name: kustomize-diff
+description: Diff Kustomize overlays between a PR branch and its merge target
+author: AdrienneCohea
+
+inputs:
+  search-path:
+    description: >
+      Newline-separated list of paths (relative to repo root) to search for
+      Kustomize overlays. If omitted, the entire repo is searched.
+    required: false
+
+runs:
+  using: docker
+  image: docker://ghcr.io/adriennecohea/kustomize-diff:v1
+
+branding:
+  icon: git-pull-request
+  color: blue
