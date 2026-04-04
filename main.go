@@ -16,6 +16,7 @@ import (
 	"github.com/AdrienneCohea/kustomize-diff/internal/git"
 	"github.com/AdrienneCohea/kustomize-diff/internal/kustomize"
 	"github.com/AdrienneCohea/kustomize-diff/internal/output"
+	"github.com/gonvenience/bunt"
 	"github.com/homeport/dyff/pkg/dyff"
 )
 
@@ -30,9 +31,18 @@ func main() {
 
 	baseRef := flag.String("base-ref", "", "git ref to compare against (default: auto-detect from origin)")
 	noFetch := flag.Bool("no-fetch", false, "skip git fetch before comparing")
+	forceColor := flag.Bool("force-color", false, "force colored output even when stdout is not a terminal")
+	forceTrueColor := flag.Bool("force-truecolor", false, "force 24-bit true color output (implies --force-color)")
+	reportFormat := flag.String("report-format", "auto", "output format: auto, terminal, or github-actions")
 	var searchPaths stringSliceFlag
 	flag.Var(&searchPaths, "search-path", "relative path within the repo to search for overlays (repeatable); hidden directories are not filtered when this flag is set (default: search entire repo)")
 	flag.Parse()
+
+	if *forceTrueColor {
+		bunt.SetColorSettings(bunt.ON, bunt.ON)
+	} else if *forceColor {
+		bunt.SetColorSettings(bunt.ON, bunt.AUTO)
+	}
 
 	repoRoot := "."
 	if flag.NArg() > 0 {
@@ -68,6 +78,9 @@ func main() {
 
 	noBaseline := false
 	if err := git.ExtractRef(ctx, absRoot, ref, tmpDir); err != nil {
+		if *baseRef != "" {
+			log.Fatalf("base ref %q not found: %v", ref, err)
+		}
 		noBaseline = true
 		fmt.Fprintf(os.Stderr, "warning: could not extract %s, treating as empty baseline: %v\n", ref, err)
 	}
@@ -88,7 +101,17 @@ func main() {
 	allOverlays := union(workingOverlays, baselineOverlays)
 	sort.Strings(allOverlays)
 
-	mode := output.Detect()
+	var mode output.Mode
+	switch *reportFormat {
+	case "auto":
+		mode = output.Detect()
+	case "terminal":
+		mode = output.ModeTerminal
+	case "github-actions":
+		mode = output.ModeGitHubActions
+	default:
+		log.Fatalf("unknown --report-format %q: must be auto, terminal, or github-actions", *reportFormat)
+	}
 	results := make([]output.OverlayResult, 0, len(allOverlays))
 
 	for _, relPath := range allOverlays {
