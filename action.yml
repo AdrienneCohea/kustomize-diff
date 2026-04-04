@@ -14,6 +14,14 @@ inputs:
       enable.
     required: false
     default: "false"
+  accessible-colors:
+    description: >
+      Use a blue/orange color palette instead of the default red/green one.
+      Recommended for users with red-green color vision deficiency (protanopia
+      or deuteranopia). dyff also renders +/-/± symbols alongside color, so
+      output remains readable regardless of this setting.
+    required: false
+    default: "false"
 
 runs:
   using: docker

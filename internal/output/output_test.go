@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/AdrienneCohea/kustomize-diff/internal/colorizer"
 	"github.com/homeport/dyff/pkg/dyff"
 )
 
@@ -94,7 +95,7 @@ func TestWriteSummary_ErrorsListed(t *testing.T) {
 func TestWriteOverlay_Terminal_Header(t *testing.T) {
 	result := OverlayResult{Path: "overlays/prod", Status: StatusChanged, NumDiffs: 2}
 	var buf bytes.Buffer
-	if err := WriteOverlay(&buf, result, dyff.Report{}, ModeTerminal); err != nil {
+	if err := WriteOverlay(&buf, result, dyff.Report{}, ModeTerminal, nil); err != nil {
 		t.Fatalf("WriteOverlay() error = %v", err)
 	}
 	got := buf.String()
@@ -109,7 +110,7 @@ func TestWriteOverlay_Terminal_Header(t *testing.T) {
 func TestWriteOverlay_GitHubActions_GroupMarkers(t *testing.T) {
 	result := OverlayResult{Path: "overlays/prod", Status: StatusChanged, NumDiffs: 1}
 	var buf bytes.Buffer
-	if err := WriteOverlay(&buf, result, dyff.Report{}, ModeGitHubActions); err != nil {
+	if err := WriteOverlay(&buf, result, dyff.Report{}, ModeGitHubActions, nil); err != nil {
 		t.Fatalf("WriteOverlay() error = %v", err)
 	}
 	got := buf.String()
@@ -128,7 +129,7 @@ func TestWriteOverlay_Error_PrintsMessage(t *testing.T) {
 		Err:    errors.New("kustomize plugin not found"),
 	}
 	var buf bytes.Buffer
-	if err := WriteOverlay(&buf, result, dyff.Report{}, ModeTerminal); err != nil {
+	if err := WriteOverlay(&buf, result, dyff.Report{}, ModeTerminal, nil); err != nil {
 		t.Fatalf("WriteOverlay() error = %v", err)
 	}
 	got := buf.String()
@@ -140,10 +141,48 @@ func TestWriteOverlay_Error_PrintsMessage(t *testing.T) {
 func TestWriteOverlay_Added_Status(t *testing.T) {
 	result := OverlayResult{Path: "overlays/new", Status: StatusAdded}
 	var buf bytes.Buffer
-	if err := WriteOverlay(&buf, result, dyff.Report{}, ModeTerminal); err != nil {
+	if err := WriteOverlay(&buf, result, dyff.Report{}, ModeTerminal, nil); err != nil {
 		t.Fatalf("WriteOverlay() error = %v", err)
 	}
 	if !strings.Contains(buf.String(), "added") {
 		t.Errorf("WriteOverlay(added) = %q, want 'added' in output", buf.String())
+	}
+}
+
+func TestWriteOverlay_AccessibleColorizer(t *testing.T) {
+	// Verify that the accessible colorizer doesn't break rendering and that
+	// the expected structural content (path, status) is still present. Color
+	// escape sequences are stripped in non-TTY test environments, so we check
+	// content rather than color codes.
+	tests := []struct {
+		name   string
+		result OverlayResult
+		want   []string
+	}{
+		{
+			name:   "changed overlay",
+			result: OverlayResult{Path: "overlays/prod", Status: StatusChanged, NumDiffs: 2},
+			want:   []string{"overlays/prod", "changed"},
+		},
+		{
+			name:   "error overlay",
+			result: OverlayResult{Path: "overlays/staging", Status: StatusError, Err: errors.New("build failed")},
+			want:   []string{"overlays/staging", "build failed"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := WriteOverlay(&buf, tt.result, dyff.Report{}, ModeTerminal, &colorizer.Accessible{}); err != nil {
+				t.Fatalf("WriteOverlay() with accessible colorizer error = %v", err)
+			}
+			got := buf.String()
+			for _, want := range tt.want {
+				if !strings.Contains(got, want) {
+					t.Errorf("WriteOverlay(accessible) = %q, want %q in output", got, want)
+				}
+			}
+		})
 	}
 }

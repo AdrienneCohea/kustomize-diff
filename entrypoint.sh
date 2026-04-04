@@ -17,4 +17,8 @@ case "$(printenv 'INPUT_FORCE-TRUECOLOR' || true)" in
   true|True|TRUE) ARGS="$ARGS -force-truecolor" ;;
 esac
 
+case "$(printenv 'INPUT_ACCESSIBLE-COLORS' || true)" in
+  true|True|TRUE) ARGS="$ARGS -accessible-colors" ;;
+esac
+
 exec kustomize-diff $ARGS
