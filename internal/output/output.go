@@ -48,7 +48,8 @@ type OverlayResult struct {
 }
 
 // WriteOverlay renders the dyff report for a single overlay to w.
-func WriteOverlay(w io.Writer, result OverlayResult, report dyff.Report, mode Mode) error {
+// colorizer overrides the default red/green palette; pass nil to use the dyff default.
+func WriteOverlay(w io.Writer, result OverlayResult, report dyff.Report, mode Mode, colorizer dyff.Colorizer) error {
 	switch mode {
 	case ModeGitHubActions:
 		fmt.Fprintf(w, "::group::%s [%s]\n", result.Path, result.Status)
@@ -65,6 +66,7 @@ func WriteOverlay(w io.Writer, result OverlayResult, report dyff.Report, mode Mo
 	hr := &dyff.HumanReport{
 		Report:     report,
 		OmitHeader: true,
+		Colorizer:  colorizer,
 	}
 	return hr.WriteReport(w)
 }

@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/AdrienneCohea/kustomize-diff/internal/colorizer"
 	"github.com/AdrienneCohea/kustomize-diff/internal/diff"
 	"github.com/AdrienneCohea/kustomize-diff/internal/git"
 	"github.com/AdrienneCohea/kustomize-diff/internal/kustomize"
@@ -33,6 +34,7 @@ func main() {
 	noFetch := flag.Bool("no-fetch", false, "skip git fetch before comparing")
 	forceColor := flag.Bool("force-color", false, "force colored output even when stdout is not a terminal")
 	forceTrueColor := flag.Bool("force-truecolor", false, "force 24-bit true color output (implies --force-color)")
+	accessibleColors := flag.Bool("accessible-colors", false, "use a blue/orange color palette instead of red/green for better visibility with color vision deficiency")
 	reportFormat := flag.String("report-format", "auto", "output format: auto, terminal, or github-actions")
 	var searchPaths stringSliceFlag
 	flag.Var(&searchPaths, "search-path", "relative path within the repo to search for overlays (repeatable); hidden directories are not filtered when this flag is set (default: search entire repo)")
@@ -55,6 +57,12 @@ func main() {
 		// hyphens, so this is INPUT_FORCE-TRUECOLOR, not INPUT_FORCE_TRUECOLOR.
 		if v := os.Getenv("INPUT_FORCE-TRUECOLOR"); v == "true" || v == "True" || v == "TRUE" {
 			*forceTrueColor = true
+		}
+	}
+
+	if !*accessibleColors {
+		if v := os.Getenv("INPUT_ACCESSIBLE-COLORS"); v == "true" || v == "True" || v == "TRUE" {
+			*accessibleColors = true
 		}
 	}
 
@@ -132,13 +140,18 @@ func main() {
 	default:
 		log.Fatalf("unknown --report-format %q: must be auto, terminal, or github-actions", *reportFormat)
 	}
+	var clrz dyff.Colorizer
+	if *accessibleColors {
+		clrz = &colorizer.Accessible{}
+	}
+
 	results := make([]output.OverlayResult, 0, len(allOverlays))
 
 	for _, relPath := range allOverlays {
 		result, report := compareOverlay(ctx, relPath, absRoot, tmpDir, noBaseline)
 		results = append(results, result)
 		if result.Status != output.StatusUnchanged {
-			if err := output.WriteOverlay(os.Stdout, result, report, mode); err != nil {
+			if err := output.WriteOverlay(os.Stdout, result, report, mode, clrz); err != nil {
 				fmt.Fprintf(os.Stderr, "error rendering %s: %v\n", relPath, err)
 			}
 		}
