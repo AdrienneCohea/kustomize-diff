@@ -1,9 +1,8 @@
-// Package colorizer provides an accessible color scheme for dyff output.
-// The default dyff palette uses red for removals and green for additions,
-// which are indistinguishable for people with red-green color vision
-// deficiency (the most common form, affecting ~8% of males). This package
-// provides a blue/orange palette from the Okabe-Ito set, which is
-// distinguishable across all common forms of color blindness.
+// Package colorizer provides color schemes for dyff output.
+// The default scheme uses a blue/orange palette from the Okabe-Ito set,
+// which is distinguishable across all common forms of color blindness
+// (including red-green color vision deficiency, the most common form,
+// affecting ~8% of males).
 //
 // dyff also renders +/-/± symbols alongside color, so tritanopes and
 // people with achromatopsia retain non-color differentiation regardless
@@ -19,12 +18,12 @@ import (
 	colorful "github.com/lucasb-eyer/go-colorful"
 )
 
-// Accessible implements dyff.Colorizer using an Okabe-Ito blue/orange
-// palette in place of the default red/green one.
-type Accessible struct{}
+// OkabeIto implements dyff.Colorizer using a blue/orange/yellow palette
+// from the Okabe-Ito set, which is the default color scheme.
+type OkabeIto struct{}
 
-// compile-time check that Accessible satisfies the interface
-var _ dyff.Colorizer = (*Accessible)(nil)
+// compile-time check that OkabeIto satisfies the interface
+var _ dyff.Colorizer = (*OkabeIto)(nil)
 
 var (
 	additionBlue   = hex("#0072B2") // Okabe-Ito blue   — additions
@@ -53,30 +52,30 @@ func coloredf(color colorful.Color, format string, a ...interface{}) string {
 	return bunt.Style(text, bunt.EachLine(), bunt.Foreground(color))
 }
 
-func (c *Accessible) Green(text string) string             { return colored(additionBlue, text) }
-func (c *Accessible) Greenf(f string, a ...interface{}) string { return coloredf(additionBlue, f, a...) }
-func (c *Accessible) Red(text string) string               { return colored(removalOrange, text) }
-func (c *Accessible) Redf(f string, a ...interface{}) string   { return coloredf(removalOrange, f, a...) }
-func (c *Accessible) Yellowf(f string, a ...interface{}) string { return coloredf(modifyYellow, f, a...) }
-func (c *Accessible) LightGreen(text string) string        { return colored(lightBlue, text) }
-func (c *Accessible) LightRed(text string) string          { return colored(lightOrange, text) }
+func (c *OkabeIto) Green(text string) string             { return colored(additionBlue, text) }
+func (c *OkabeIto) Greenf(f string, a ...interface{}) string { return coloredf(additionBlue, f, a...) }
+func (c *OkabeIto) Red(text string) string               { return colored(removalOrange, text) }
+func (c *OkabeIto) Redf(f string, a ...interface{}) string   { return coloredf(removalOrange, f, a...) }
+func (c *OkabeIto) Yellowf(f string, a ...interface{}) string { return coloredf(modifyYellow, f, a...) }
+func (c *OkabeIto) LightGreen(text string) string        { return colored(lightBlue, text) }
+func (c *OkabeIto) LightRed(text string) string          { return colored(lightOrange, text) }
 
-func (c *Accessible) DimGray(text string) string {
+func (c *OkabeIto) DimGray(text string) string {
 	return colored(bunt.DimGray, text)
 }
 
-func (c *Accessible) Bold(text string) string {
+func (c *OkabeIto) Bold(text string) string {
 	return bunt.Style(text, bunt.EachLine(), bunt.Bold())
 }
 
-func (c *Accessible) Italic(text string) string {
+func (c *OkabeIto) Italic(text string) string {
 	return bunt.Style(text, bunt.EachLine(), bunt.Italic())
 }
 
-func (c *Accessible) BoldGreen(text string) string { return c.Bold(c.Green(text)) }
-func (c *Accessible) BoldRed(text string) string   { return c.Bold(c.Red(text)) }
+func (c *OkabeIto) BoldGreen(text string) string { return c.Bold(c.Green(text)) }
+func (c *OkabeIto) BoldRed(text string) string   { return c.Bold(c.Red(text)) }
 
-func (c *Accessible) StylizeHeader(header string) string {
+func (c *OkabeIto) StylizeHeader(header string) string {
 	return bunt.Style(
 		header,
 		bunt.ForegroundFunc(func(x int, _ int, _ rune) *colorful.Color {
@@ -96,7 +95,7 @@ func (c *Accessible) StylizeHeader(header string) string {
 	)
 }
 
-func (c *Accessible) YAMLInGreenishColors(input interface{}, useIndentLines bool) (string, error) {
+func (c *OkabeIto) YAMLInGreenishColors(input interface{}, useIndentLines bool) (string, error) {
 	return neat.NewOutputProcessor(useIndentLines, true, &map[string]colorful.Color{
 		"keyColor":           additionBlue,
 		"indentLineColor":    hex("#003D60"),
@@ -111,7 +110,7 @@ func (c *Accessible) YAMLInGreenishColors(input interface{}, useIndentLines bool
 	}).ToYAML(input)
 }
 
-func (c *Accessible) YAMLInRedishColors(input interface{}, useIndentLines bool) (string, error) {
+func (c *OkabeIto) YAMLInRedishColors(input interface{}, useIndentLines bool) (string, error) {
 	return neat.NewOutputProcessor(useIndentLines, true, &map[string]colorful.Color{
 		"keyColor":           removalOrange,
 		"indentLineColor":    hex("#6B2F00"),
