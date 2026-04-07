@@ -21,6 +21,12 @@ inputs:
       readable regardless of this setting.
     required: false
     default: "false"
+  set-exit-code:
+    description: >
+      Exit with code 1 when differences are found, 0 when none. Fatal errors
+      always exit 255. Set to "true" to enable.
+    required: false
+    default: "false"
 
 runs:
   using: docker
