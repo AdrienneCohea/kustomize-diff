@@ -6,7 +6,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -28,8 +27,18 @@ func (f *stringSliceFlag) String() string  { return strings.Join(*f, ", ") }
 func (f *stringSliceFlag) Set(v string) error { *f = append(*f, v); return nil }
 
 func main() {
-	log.SetFlags(0)
+	setExitCode := flag.Bool("set-exit-code", false, "exit 1 when differences are found, 0 when none; fatal errors always exit 255")
+	diffsFound, err := run()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(255)
+	}
+	if *setExitCode && diffsFound {
+		os.Exit(1)
+	}
+}
 
+func run() (bool, error) {
 	baseRef := flag.String("base-ref", "", "git ref to compare against (default: auto-detect from origin)")
 	noFetch := flag.Bool("no-fetch", false, "skip git fetch before comparing")
 	forceColor := flag.Bool("force-color", false, "force colored output even when stdout is not a terminal")
@@ -79,7 +88,7 @@ func main() {
 
 	absRoot, err := filepath.Abs(repoRoot)
 	if err != nil {
-		log.Fatalf("resolving repo root %q: %v", repoRoot, err)
+		return false, fmt.Errorf("resolving repo root %q: %w", repoRoot, err)
 	}
 
 	ctx := context.Background()
@@ -94,20 +103,20 @@ func main() {
 	if ref == "" {
 		ref, err = git.DefaultRef(ctx, absRoot)
 		if err != nil {
-			log.Fatalf("detecting default branch: %v", err)
+			return false, fmt.Errorf("detecting default branch: %w", err)
 		}
 	}
 
 	tmpDir, err := os.MkdirTemp("", "kustomize-diff-*")
 	if err != nil {
-		log.Fatalf("creating temp dir: %v", err)
+		return false, fmt.Errorf("creating temp dir: %w", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	noBaseline := false
 	if err := git.ExtractRef(ctx, absRoot, ref, tmpDir); err != nil {
 		if *baseRef != "" {
-			log.Fatalf("base ref %q not found: %v", ref, err)
+			return false, fmt.Errorf("base ref %q not found: %w", ref, err)
 		}
 		noBaseline = true
 		fmt.Fprintf(os.Stderr, "warning: could not extract %s, treating as empty baseline: %v\n", ref, err)
@@ -115,14 +124,14 @@ func main() {
 
 	workingOverlays, err := kustomize.FindOverlays(absRoot, searchPaths)
 	if err != nil {
-		log.Fatalf("finding overlays in working tree: %v", err)
+		return false, fmt.Errorf("finding overlays in working tree: %w", err)
 	}
 
 	var baselineOverlays []string
 	if !noBaseline {
 		baselineOverlays, err = kustomize.FindOverlays(tmpDir, searchPaths)
 		if err != nil {
-			log.Fatalf("finding overlays in baseline: %v", err)
+			return false, fmt.Errorf("finding overlays in baseline: %w", err)
 		}
 	}
 
@@ -138,7 +147,7 @@ func main() {
 	case "github-actions":
 		mode = output.ModeGitHubActions
 	default:
-		log.Fatalf("unknown --report-format %q: must be auto, terminal, or github-actions", *reportFormat)
+		return false, fmt.Errorf("unknown --report-format %q: must be auto, terminal, or github-actions", *reportFormat)
 	}
 	var clrz dyff.Colorizer
 	if !*redGreen {
@@ -146,10 +155,14 @@ func main() {
 	}
 
 	results := make([]output.OverlayResult, 0, len(allOverlays))
+	diffsFound := false
 
 	for _, relPath := range allOverlays {
 		result, report := compareOverlay(ctx, relPath, absRoot, tmpDir, noBaseline)
 		results = append(results, result)
+		if result.Status == output.StatusChanged || result.Status == output.StatusAdded || result.Status == output.StatusRemoved {
+			diffsFound = true
+		}
 		if result.Status != output.StatusUnchanged {
 			if err := output.WriteOverlay(os.Stdout, result, report, mode, clrz); err != nil {
 				fmt.Fprintf(os.Stderr, "error rendering %s: %v\n", relPath, err)
@@ -158,6 +171,7 @@ func main() {
 	}
 
 	output.WriteSummary(os.Stdout, results, mode)
+	return diffsFound, nil
 }
 
 // compareOverlay builds both sides of a single overlay and diffs them.

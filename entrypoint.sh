@@ -21,4 +21,8 @@ case "$(printenv 'INPUT_RED-GREEN' || true)" in
   true|True|TRUE) ARGS="$ARGS -red-green" ;;
 esac
 
+case "$(printenv 'INPUT_SET-EXIT-CODE' || true)" in
+  true|True|TRUE) ARGS="$ARGS -set-exit-code" ;;
+esac
+
 exec kustomize-diff $ARGS
