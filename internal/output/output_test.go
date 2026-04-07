@@ -149,8 +149,8 @@ func TestWriteOverlay_Added_Status(t *testing.T) {
 	}
 }
 
-func TestWriteOverlay_AccessibleColorizer(t *testing.T) {
-	// Verify that the accessible colorizer doesn't break rendering and that
+func TestWriteOverlay_OkabeItoColorizer(t *testing.T) {
+	// Verify that the OkabeIto colorizer doesn't break rendering and that
 	// the expected structural content (path, status) is still present. Color
 	// escape sequences are stripped in non-TTY test environments, so we check
 	// content rather than color codes.
@@ -174,13 +174,13 @@ func TestWriteOverlay_AccessibleColorizer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			if err := WriteOverlay(&buf, tt.result, dyff.Report{}, ModeTerminal, &colorizer.Accessible{}); err != nil {
-				t.Fatalf("WriteOverlay() with accessible colorizer error = %v", err)
+			if err := WriteOverlay(&buf, tt.result, dyff.Report{}, ModeTerminal, &colorizer.OkabeIto{}); err != nil {
+				t.Fatalf("WriteOverlay() with OkabeIto colorizer error = %v", err)
 			}
 			got := buf.String()
 			for _, want := range tt.want {
 				if !strings.Contains(got, want) {
-					t.Errorf("WriteOverlay(accessible) = %q, want %q in output", got, want)
+					t.Errorf("WriteOverlay(OkabeIto) = %q, want %q in output", got, want)
 				}
 			}
 		})

@@ -34,7 +34,7 @@ func main() {
 	noFetch := flag.Bool("no-fetch", false, "skip git fetch before comparing")
 	forceColor := flag.Bool("force-color", false, "force colored output even when stdout is not a terminal")
 	forceTrueColor := flag.Bool("force-truecolor", false, "force 24-bit true color output (implies --force-color)")
-	accessibleColors := flag.Bool("accessible-colors", false, "use a blue/orange color palette instead of red/green for better visibility with color vision deficiency")
+	redGreen := flag.Bool("red-green", false, "use a red/green color palette instead of the default blue/orange/yellow one")
 	reportFormat := flag.String("report-format", "auto", "output format: auto, terminal, or github-actions")
 	var searchPaths stringSliceFlag
 	flag.Var(&searchPaths, "search-path", "relative path within the repo to search for overlays (repeatable); hidden directories are not filtered when this flag is set (default: search entire repo)")
@@ -60,9 +60,9 @@ func main() {
 		}
 	}
 
-	if !*accessibleColors {
-		if v := os.Getenv("INPUT_ACCESSIBLE-COLORS"); v == "true" || v == "True" || v == "TRUE" {
-			*accessibleColors = true
+	if !*redGreen {
+		if v := os.Getenv("INPUT_RED-GREEN"); v == "true" || v == "True" || v == "TRUE" {
+			*redGreen = true
 		}
 	}
 
@@ -141,8 +141,8 @@ func main() {
 		log.Fatalf("unknown --report-format %q: must be auto, terminal, or github-actions", *reportFormat)
 	}
 	var clrz dyff.Colorizer
-	if *accessibleColors {
-		clrz = &colorizer.Accessible{}
+	if !*redGreen {
+		clrz = &colorizer.OkabeIto{}
 	}
 
 	results := make([]output.OverlayResult, 0, len(allOverlays))
