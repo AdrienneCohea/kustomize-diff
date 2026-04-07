@@ -45,8 +45,17 @@ Run from within a git repository, or pass the path to the repo root as a positio
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-base-ref` | auto-detect | Git ref to compare the working tree against. Defaults to the remote default branch (e.g. `origin/main`). |
-| `-no-fetch` | false | Skip `git fetch origin` before comparing. |
-| `-search-path` | (none) | Relative path within the repo to search for overlays. Can be specified multiple times. If omitted, the entire repo is searched. |
+| `-no-fetch` | `false` | Skip `git fetch origin` before comparing. |
+| `-search-path` | (none) | Relative path within the repo to search for overlays. Repeatable; if omitted, the entire repo is searched. |
+| `-report-format` | `auto` | Output format: `auto`, `terminal`, or `github-actions`. `auto` detects GitHub Actions via `$GITHUB_ACTIONS`. |
+| `-set-exit-code` | `false` | Exit 1 when differences are found, 0 when none. Fatal errors always exit 255. |
+| `-force-color` | `false` | Force colored output even when stdout is not a terminal. |
+| `-force-truecolor` | `false` | Force 24-bit true color output (implies `-force-color`). |
+| `-red-green` | `false` | Use a red/green color palette instead of the default blue/orange/yellow (Okabe-Ito) palette. |
+
+### Color scheme
+
+By default, `kustomize-diff` uses an Okabe-Ito blue/orange/yellow palette, which is distinguishable across the most common forms of color blindness. dyff also renders `+`/`-`/`±` symbols alongside color, so output remains readable regardless of palette choice. Pass `-red-green` to use the traditional red/green scheme.
 
 ### Examples
 
@@ -59,6 +68,12 @@ kustomize-diff -base-ref origin/release-1.2
 
 # Skip fetching (useful offline or in CI when fetch already happened)
 kustomize-diff -no-fetch
+
+# Search only specific overlay directories
+kustomize-diff -search-path overlays -search-path base
+
+# Exit with a non-zero code when diffs are found (useful in CI)
+kustomize-diff -set-exit-code
 
 # Run against a repo at a different path
 kustomize-diff /path/to/my-repo
@@ -85,7 +100,29 @@ To target specific overlay directories, use the `search-path` input (newline-sep
       base
 ```
 
-The action automatically diffs against the PR's merge target branch and requires no other configuration. Output is formatted using `::group::` blocks for collapsible sections, and a markdown summary table is written to `$GITHUB_STEP_SUMMARY`.
+The action automatically diffs against the PR's merge target branch and requires no other configuration. Output is formatted using `::group::` blocks for collapsible sections in the Actions log, and a markdown summary table is written to `$GITHUB_STEP_SUMMARY`.
+
+#### Action inputs
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `search-path` | (none) | Newline-separated list of relative paths to search for overlays. If omitted, the entire repo is searched. |
+| `set-exit-code` | `false` | Set to `"true"` to exit 1 when differences are found. Useful for blocking merges when manifests change unexpectedly. |
+| `force-truecolor` | `false` | Set to `"true"` to force 24-bit true color output (implies force-color). |
+| `red-green` | `false` | Set to `"true"` to use a red/green color palette instead of the default Okabe-Ito palette. |
+
+#### Full example
+
+```yaml
+- uses: actions/checkout@v4
+- uses: AdrienneCohea/kustomize-diff@v1
+  with:
+    search-path: |
+      overlays
+      base
+    set-exit-code: "true"
+    force-truecolor: "true"
+```
 
 ### Running the CLI directly
 
